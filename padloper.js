@@ -34,7 +34,7 @@
 /******/ 	__webpack_require__.c = installedModules;
 
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "/";
+/******/ 	__webpack_require__.p = "/demo/";
 
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(0);
@@ -52,7 +52,7 @@
 	var CodeMirror = __webpack_require__(7);
 	var cm = CodeMirror(document.getElementsByClassName('editor')[0], {
 	  lineNumbers: true,
-	  value: 'repeat(4) {\n\tmove(10);\n    rotate(90);\n}'
+	  value: 'move(10);\nrotate(90);\nmove(10);\nrotate(90);\nmove(10);\nrotate(90);\nmove(10);\nrotate(90);'
 	});
 	var canvas = document.getElementsByClassName('canvas')[0];
 	var canvasContainer = document.getElementsByClassName('canvas-container')[0];
@@ -64,6 +64,8 @@
 	document.getElementsByClassName('run-button')[0].addEventListener('click', function () {
 	  draw(canvas, cm.getValue());
 	});
+
+	draw(canvas, cm.getValue());
 
 /***/ },
 /* 1 */
@@ -8983,11 +8985,8 @@
 
 	'use strict';
 
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 	var parse = __webpack_require__(9).parse;
+	var evl = __webpack_require__(10);
 
 	module.exports = function (canvas, program) {
 	  var ctx = canvas.getContext('2d');
@@ -8995,73 +8994,22 @@
 	  ctx.translate(0.5, 0.5); // fixes fuzzy strokes
 	  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-	  var turtle = new Turtle(canvas);
+	  var env = {
+	    ctx: ctx,
+	    x: 100,
+	    y: 100,
+	    direction: 0
+	  };
 
 	  try {
-	    evl(turtle, parse(program));
+	    var ast = parse(program);
+	    for (var i = 0; i < ast.length; i++) {
+	      evl(ast[i], env);
+	    }
 	  } catch (e) {
 	    console.log(e.message);
 	  }
 	};
-
-	var evl = function evl(turtle, expr) {
-	  if (Array.isArray(expr)) {
-	    for (var i = 0; i < expr.length; i++) {
-	      evl(turtle, expr[i]);
-	    }
-	  } else {
-	    switch (expr.tag) {
-	      case 'move':
-	        turtle.move(expr.expr);
-	        break;
-	      case 'rotate':
-	        turtle.rotate(expr.expr);
-	        break;
-	      case 'repeat':
-	        for (var i = 0; i < expr.expr; i++) {
-	          evl(turtle, expr.body);
-	        }
-	    }
-	  }
-	};
-
-	var degreesToRadians = function degreesToRadians(deg) {
-	  return deg * Math.PI / 180;
-	};
-
-	var Turtle = function () {
-	  function Turtle(canvas) {
-	    _classCallCheck(this, Turtle);
-
-	    this.x = 100;
-	    this.y = 100;
-	    this.direction = 0;
-	    this.canvas = canvas;
-	    this.ctx = canvas.getContext('2d');
-	  }
-
-	  _createClass(Turtle, [{
-	    key: 'move',
-	    value: function move(amt) {
-	      var dir = degreesToRadians(this.direction);
-	      var newX = this.x + amt * Math.cos(dir);
-	      var newY = this.y + amt * Math.sin(dir);
-	      this.ctx.beginPath();
-	      this.ctx.moveTo(this.x, this.y);
-	      this.ctx.lineTo(newX, newY);
-	      this.ctx.stroke();
-	      this.x = newX;
-	      this.y = newY;
-	    }
-	  }, {
-	    key: 'rotate',
-	    value: function rotate(pos) {
-	      this.direction = (pos + this.direction) % 360;
-	    }
-	  }]);
-
-	  return Turtle;
-	}();
 
 /***/ },
 /* 9 */
@@ -10110,6 +10058,43 @@
 	    parse: peg$parse
 	  };
 	}();
+
+/***/ },
+/* 10 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	module.exports = function evl(expr, env) {
+	  switch (expr.tag) {
+	    case 'move':
+	      return move(expr.expr, env);
+	    case 'rotate':
+	      return rotate(expr.expr, env);
+	  }
+	};
+
+	var move = function move(amt, env) {
+	  var dir = degreesToRadians(env.direction);
+	  var newX = env.x + amt * Math.cos(dir);
+	  var newY = env.y + amt * Math.sin(dir);
+	  env.ctx.beginPath();
+	  env.ctx.moveTo(env.x, env.y);
+	  env.ctx.lineTo(newX, newY);
+	  env.ctx.stroke();
+	  env.x = newX;
+	  env.y = newY;
+	};
+
+	var rotate = function rotate(pos, env) {
+	  env.direction = (pos + env.direction) % 360;
+	};
+
+	// helpers
+
+	var degreesToRadians = function degreesToRadians(deg) {
+	  return deg * Math.PI / 180;
+	};
 
 /***/ }
 /******/ ]);
