@@ -1,10 +1,19 @@
 module.exports = {
   entry: "./src/padloper.js",
   output: {
-    path: __dirname+"/build",
+    path: __dirname+"/demo",
     filename: "padloper.js"
   },
   module: {
-    loaders: []
-  }
+    loaders: [{
+      test: /\.js$/,
+      exclude: /node_modules/,
+      loader: 'babel',
+      query: {
+        cacheDirectory: true,
+        presets: ['es2015']
+      }
+    }]
+  },
+  devtool: 'cheap-module-eval-source-map'
 };

@@ -1,15 +1,15 @@
 var debounce = require('debounce');
 var CodeMirror = require('codemirror');
 var cm = CodeMirror(document.getElementsByClassName('editor')[0], {
-  lineNumbers: true
+  lineNumbers: true,
+  value: `repeat(4) {
+	move(10);
+    rotate(90);
+}`
 });
+var canvas = document.getElementsByClassName('canvas')[0];
+var draw = require('./turtle.js');
 
-var parse = require('../build/parser').parse;
-
-cm.on('change', debounce(function(instance) {
-  try {
-    console.log(parse(instance.getValue()));
-  } catch(e) {
-    console.log(e.message);
-  }
-}, 500));
+document.getElementsByClassName('run-button')[0].addEventListener('click', function () {
+  draw(canvas, cm.getValue());
+});
