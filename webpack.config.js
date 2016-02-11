@@ -2,7 +2,8 @@ module.exports = {
   entry: "./src/padloper.js",
   output: {
     path: __dirname+"/demo",
-    filename: "padloper.js"
+    filename: "padloper.js",
+    publicPath: "/"
   },
   module: {
     loaders: [{
@@ -13,6 +14,9 @@ module.exports = {
         cacheDirectory: true,
         presets: ['es2015']
       }
+    }, {
+      test: /\.css$/,
+      loader: "style!css"
     }]
   },
   devtool: 'cheap-module-eval-source-map'

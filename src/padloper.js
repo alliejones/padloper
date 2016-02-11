@@ -1,3 +1,5 @@
+require('./style.css');
+
 var debounce = require('debounce');
 var CodeMirror = require('codemirror');
 var cm = CodeMirror(document.getElementsByClassName('editor')[0], {
