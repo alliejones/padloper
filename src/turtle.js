@@ -1,4 +1,4 @@
-var parse = require('../demo/parser').parse;
+var parse = require('./parser').parse;
 
 module.exports = function (canvas, program) {
   var ctx = canvas.getContext('2d');

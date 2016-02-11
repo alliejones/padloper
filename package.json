@@ -4,13 +4,16 @@
   "description": "The [speckled padloper](https://en.wikipedia.org/wiki/Homopus_signatus) is the world's smallest tortoise and this is a tiny turtle graphics language that runs in the browser.",
   "main": "index.js",
   "scripts": {
-    "build": "npm run build:parser && webpack --progress --colors",
-    "build:parser": "pegjs src/turtle.peg demo/parser.js",
-    "watch": "webpack-dev-server --progress --colors --inline --hot"
+    "build": "npm run build:parser && webpack --progress --colors --production",
+    "build:parser": "pegjs src/turtle.peg src/parser.js",
+    "watch": "webpack-dev-server --progress --colors --inline --hot",
+    "pages:update": "git subtree push --prefix demo origin gh-pages"
   },
   "author": "Allie Jones <allie@alliejon.es>",
   "license": "ISC",
   "devDependencies": {
+    "extract-text-webpack-plugin": "^1.0.1",
+    "minimist": "^1.2.0",
     "pegjs": "^0.9.0",
     "webpack": "^1.12.13",
     "webpack-dev-server": "^1.14.1"
