@@ -1,2 +1,43 @@
+* {
+  box-sizing: border-box;
+}
+
 body {
+  margin: 0;
+}
+
+.editor-container,
+.canvas-container {
+  height: 50vh;
+  position: relative;
+}
+
+.canvas-container {
+  border-top: 1px solid #ddd;
+  overflow: hidden;
+}
+
+.run-button {
+  background-color: #fff;
+  border: 1px solid #666;
+  border-radius: 4px;
+  color: #333;
+  font-size: 24px;
+  padding: 0.25em 0.4em;
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+}
+
+.run-button:active {
+  background-color: #eee;
+}
+
+.CodeMirror {
+  background: #f7f7f7;
+  height: 50vh;
+}
+
+.CodeMirror-gutter {
+  background: #e7e7e7;
 }

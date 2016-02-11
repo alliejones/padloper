@@ -2,6 +2,8 @@ var parse = require('../demo/parser').parse;
 
 module.exports = function (canvas, program) {
   var ctx = canvas.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transforms
+  ctx.translate(0.5, 0.5); // fixes fuzzy strokes
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   var turtle = new Turtle(canvas);
