@@ -7,41 +7,19 @@ module.exports = function (canvas, program) {
   ctx.translate(0.5, 0.5); // fixes fuzzy strokes
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  var turtle = new Turtle(canvas);
+  var env = {
+    ctx: ctx,
+    x: 100,
+    y: 100,
+    direction: 0
+  };
 
   try {
-    evl(turtle, parse(program));
+    var ast = parse(program);
+    for (var i = 0; i < ast.length; i++) {
+      evl(ast[i], env);
+    }
   } catch(e) {
     console.log(e.message);
   }
 };
-
-var degreesToRadians = function (deg) {
-    return deg * Math.PI/180;
-};
-
-class Turtle {
-  constructor(canvas) {
-    this.x = 100;
-    this.y = 100;
-    this.direction = 0;
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-  }
-
-  move(amt) {
-    var dir = degreesToRadians(this.direction);
-    var newX = this.x + amt * Math.cos(dir);
-    var newY = this.y + amt * Math.sin(dir);
-    this.ctx.beginPath();
-    this.ctx.moveTo(this.x, this.y);
-    this.ctx.lineTo(newX, newY);
-    this.ctx.stroke();
-    this.x = newX;
-    this.y = newY;
-  }
-
-  rotate(pos) {
-    this.direction = (pos + this.direction) % 360;
-  }
-}

@@ -6,7 +6,7 @@ var config = {
   output: {
     path: __dirname+"/demo",
     filename: "padloper.js",
-    publicPath: "/"
+    publicPath: "/demo/"
   },
   module: {
     loaders: [{
