@@ -7,15 +7,14 @@ module.exports = function evl (expr, env) {
   }
 };
 
-
 var move = function (amt, env) {
   var dir = degreesToRadians(env.direction);
   var newX = env.x + amt * Math.cos(dir);
   var newY = env.y + amt * Math.sin(dir);
-  env.ctx.beginPath();
-  env.ctx.moveTo(env.x, env.y);
-  env.ctx.lineTo(newX, newY);
-  env.ctx.stroke();
+  env.paths.push({
+    start: { x: env.x, y: env.y },
+    end: { x: newX, y: newY }
+  });
   env.x = newX;
   env.y = newY;
 };
