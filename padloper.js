@@ -54,18 +54,38 @@
 	  lineNumbers: true,
 	  value: 'move(10);\nrotate(90);\nmove(10);\nrotate(90);\nmove(10);\nrotate(90);\nmove(10);\nrotate(90);'
 	});
-	var canvas = document.getElementsByClassName('canvas')[0];
-	var canvasContainer = document.getElementsByClassName('canvas-container')[0];
-	var size = canvasContainer.getBoundingClientRect();
-	canvas.width = size.width;
-	canvas.height = size.height;
-	var draw = __webpack_require__(8);
+
+	var TurtleCanvas = __webpack_require__(8);
+	var canvas = new TurtleCanvas(document.getElementsByClassName('canvas')[0]);
+	canvas.fitToContainer(document.getElementsByClassName('canvas-container')[0]);
 
 	document.getElementsByClassName('run-button')[0].addEventListener('click', function () {
-	  draw(canvas, cm.getValue());
+	  run(canvas, cm.getValue());
 	});
 
-	draw(canvas, cm.getValue());
+	var parse = __webpack_require__(9).parse;
+	var evl = __webpack_require__(10);
+
+	var run = function run(canvas, program) {
+	  var env = {
+	    x: 100,
+	    y: 100,
+	    direction: 0,
+	    paths: []
+	  };
+
+	  try {
+	    var ast = parse(program);
+	    for (var i = 0; i < ast.length; i++) {
+	      evl(ast[i], env);
+	    }
+	    canvas.draw(env.paths);
+	  } catch (e) {
+	    console.log(e.message);
+	  }
+	};
+
+	run(canvas, cm.getValue());
 
 /***/ },
 /* 1 */
@@ -8981,35 +9001,59 @@
 
 /***/ },
 /* 8 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ function(module, exports) {
 
 	'use strict';
 
-	var parse = __webpack_require__(9).parse;
-	var evl = __webpack_require__(10);
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-	module.exports = function (canvas, program) {
-	  var ctx = canvas.getContext('2d');
-	  ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transforms
-	  ctx.translate(0.5, 0.5); // fixes fuzzy strokes
-	  ctx.clearRect(0, 0, canvas.width, canvas.height);
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	  var env = {
-	    ctx: ctx,
-	    x: 100,
-	    y: 100,
-	    direction: 0
-	  };
+	var TurtleCanvas = function () {
+	  function TurtleCanvas(canvasEl, canvasContainerEl) {
+	    _classCallCheck(this, TurtleCanvas);
 
-	  try {
-	    var ast = parse(program);
-	    for (var i = 0; i < ast.length; i++) {
-	      evl(ast[i], env);
-	    }
-	  } catch (e) {
-	    console.log(e.message);
+	    this.ctx = canvasEl.getContext('2d');
 	  }
-	};
+
+	  _createClass(TurtleCanvas, [{
+	    key: 'draw',
+	    value: function draw(paths) {
+	      var _this = this;
+
+	      this.clear();
+	      paths.forEach(function (p) {
+	        return _this.drawPath(p);
+	      });
+	    }
+	  }, {
+	    key: 'clear',
+	    value: function clear() {
+	      this.ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transforms
+	      this.ctx.translate(0.5, 0.5); // fixes fuzzy strokes
+	      this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+	    }
+	  }, {
+	    key: 'drawPath',
+	    value: function drawPath(path) {
+	      this.ctx.beginPath();
+	      this.ctx.moveTo(path.start.x, path.start.y);
+	      this.ctx.lineTo(path.end.x, path.end.y);
+	      this.ctx.stroke();
+	    }
+	  }, {
+	    key: 'fitToContainer',
+	    value: function fitToContainer(containerEl) {
+	      var size = containerEl.getBoundingClientRect();
+	      this.ctx.canvas.width = size.width;
+	      this.ctx.canvas.height = size.height;
+	    }
+	  }]);
+
+	  return TurtleCanvas;
+	}();
+
+	module.exports = TurtleCanvas;
 
 /***/ },
 /* 9 */
@@ -10078,10 +10122,10 @@
 	  var dir = degreesToRadians(env.direction);
 	  var newX = env.x + amt * Math.cos(dir);
 	  var newY = env.y + amt * Math.sin(dir);
-	  env.ctx.beginPath();
-	  env.ctx.moveTo(env.x, env.y);
-	  env.ctx.lineTo(newX, newY);
-	  env.ctx.stroke();
+	  env.paths.push({
+	    start: { x: env.x, y: env.y },
+	    end: { x: newX, y: newY }
+	  });
 	  env.x = newX;
 	  env.y = newY;
 	};
