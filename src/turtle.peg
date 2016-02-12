@@ -1,8 +1,59 @@
-start = statements
+statements = statement*
 
-number =
-	n:[0-9]+
-    	{ return +n.join(''); }
+statement =
+	expression
+
+expression
+    = expr:comparative
+        { return expr; }
+
+comp_op = "<=" / ">=" / "!=" / "==" / "<" / ">"
+
+comparative
+    = left:additive _ op:comp_op _ right:comparative
+        { return {tag: op, left:left, right:right}; }
+    / additive
+
+additive_op = "+" / "-"
+
+additive
+    = left:multiplicative _ op:additive_op _ right:additive
+        { return {tag:op, left:left, right:right}; }
+    / multiplicative
+
+mult_op = "*" / "/"
+
+multiplicative
+    = left:primary _ op:mult_op _ right:multiplicative
+        { return {tag:op, left:left, right:right}; }
+    / primary
+
+primary
+    = number
+    / v:identifier "(" _ ")" _ ";"
+        { return {tag:"call", name:v, args:[]}; }
+    / v:identifier "(" _ args:arglist _ ")" _ ";"
+        { return {tag:"call", name:v, args:args}; }
+    / "(" _ expr:expression _ ")"
+        { return expr; }
+
+comma_expression = "," _ expr:expression
+        { return expr; }
+
+arglist
+    = first:expression rest:comma_expression*
+        { return [first].concat(rest); }
+number
+    = neg:"-"? chars:[0-9]+ dec:number_dec?
+			{
+				var n = parseFloat(chars.join('') + dec);
+				if (neg) return n * -1;
+				else return n;
+			}
+
+number_dec
+    = "." chars:[0-9]*
+        { return "." + chars.join(''); }
 
 validfirstchar
     = [a-zA-Z_]
@@ -13,39 +64,6 @@ validchar
 identifier
     = firstchar:validfirstchar chars:validchar*
         { return firstchar + chars.join(''); }
-
-statements = statement*
-
-statement =
-	command /
-	identifier
-
-command =
-	repeat
-    / move
-    / rotate
-    / penUp
-    / penDown
-
-repeat =
-	_ "repeat" _ "(" _ n:number _ ")" _ "{" _ body:statements _ "}" _
-    	{ return { tag: "repeat", expr: n, body: body }; }
-
-move =
-	_ "move" _ "(" _ expr:number _ ")" _ ";" _
-    	{ return { tag: "move", expr: expr }; }
-
-rotate =
-	_ "rotate" _ "(" _ expr:number _ ")" _ ";" _
-    	{ return { tag: "rotate", expr: expr }; }
-
-penUp =
-	_ "penUp" _ "(" _ ")" _ ";" _
-    	{ return { tag: "penUp" }; }
-
-penDown =
-	_ "penDown" _ "(" _ ")" _ ";" _
-    	{ return { tag: "penDown" }; }
 
 _ = [ \t\n]*
 __ = [ \t\n]+

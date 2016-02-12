@@ -5,14 +5,7 @@ require('./style.css');
 var CodeMirror = require('codemirror');
 var cm = CodeMirror(document.getElementsByClassName('editor')[0], {
   lineNumbers: true,
-  value: `move(10);
-rotate(90);
-move(10);
-rotate(90);
-move(10);
-rotate(90);
-move(10);
-rotate(90);`
+  value: `20 * 2 - 5`
 });
 
 
@@ -24,23 +17,20 @@ document.getElementsByClassName('run-button')[0].addEventListener('click', funct
   run(canvas, cm.getValue());
 });
 
+var env = {
+  x: 100,
+  y: 100,
+  direction: 0,
+  paths: []
+};
 
 var parse = require('./parser').parse;
 var evl = require('./eval');
 
 var run = function (canvas, program) {
-  var env = {
-    x: 100,
-    y: 100,
-    direction: 0,
-    paths: []
-  };
-
   try {
     var ast = parse(program);
-    for (var i = 0; i < ast.length; i++) {
-      evl(ast[i], env);
-    }
+    console.log(evl(ast, env));
     canvas.draw(env.paths);
   } catch(e) {
     console.log(e.message);
