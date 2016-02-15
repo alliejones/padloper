@@ -277,10 +277,39 @@ module.exports = (function() {
       var s0, s1;
 
       s0 = [];
-      s1 = peg$parseexpression();
+      s1 = peg$parsestatement();
       while (s1 !== peg$FAILED) {
         s0.push(s1);
-        s1 = peg$parseexpression();
+        s1 = peg$parsestatement();
+      }
+
+      return s0;
+    }
+
+    function peg$parsestatement() {
+      var s0, s1, s2, s3;
+
+      s0 = peg$currPos;
+      s1 = peg$parse_();
+      if (s1 !== peg$FAILED) {
+        s2 = peg$parseexpression();
+        if (s2 !== peg$FAILED) {
+          s3 = peg$parse_();
+          if (s3 !== peg$FAILED) {
+            peg$savedPos = s0;
+            s1 = peg$c0(s2);
+            s0 = s1;
+          } else {
+            peg$currPos = s0;
+            s0 = peg$FAILED;
+          }
+        } else {
+          peg$currPos = s0;
+          s0 = peg$FAILED;
+        }
+      } else {
+        peg$currPos = s0;
+        s0 = peg$FAILED;
       }
 
       return s0;

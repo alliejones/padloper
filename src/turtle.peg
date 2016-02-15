@@ -1,7 +1,8 @@
 statements = statement*
 
 statement =
-	expression
+	_ expr:expression _
+    	{ return expr; }
 
 expression
     = expr:comparative

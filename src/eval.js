@@ -1,38 +1,57 @@
-module.exports = function evl (expr, env) {
-  if (typeof expr === 'number') return expr;
+module.exports = function evl (expr, env, cont) {
+  if (typeof expr === 'number')
+    return thunk(cont, expr);
 
   if (Array.isArray(expr)) {
-    let val;
-    for (let i = 0; i < expr.length; i++) {
-      val = evl(expr[i], env);
-    }
-    return val;
+    return (function loop (env, i) {
+      if (i < expr.length - 1) {
+        return thunk(evl, expr[i], env, function () { return loop(env, i + 1); });
+      } else {
+        return thunk(evl, expr[i], env, cont);
+      }
+    })(env, 0);
   }
 
   switch (expr.tag) {
       case '+':
-        return evl(expr.left, env) + evl(expr.right, env);
+        return thunk(evl, expr.left, env, function (v) {
+          return thunk(evl, expr.right, env, function (v2) {
+            return thunk(cont, v + v2);
+          });
+        });
       case '-':
-        return evl(expr.left, env) - evl(expr.right, env);
+        return thunk(evl, expr.left, env, function (v) {
+          return thunk(evl, expr.right, env, function (v2) {
+            return thunk(cont, v - v2);
+          });
+        });
       case '*':
-        return evl(expr.left, env) * evl(expr.right, env);
+        return thunk(evl, expr.left, env, function (v) {
+          return thunk(evl, expr.right, env, function (v2) {
+            return thunk(cont, v * v2);
+          });
+        });
       case '/':
-        return evl(expr.left, env) / evl(expr.right, env);
+        return thunk(evl, expr.left, env, function (v) {
+          return thunk(evl, expr.right, env, function (v2) {
+            return thunk(cont, v / v2);
+          });
+        });
       case 'call':
-        let func = funcs[expr.name];
-        if (!func)
-          throw new Error(`Function ${expr.name} not found.`)
-        let evaledArgs = [];
-        for (let i = 0; i < expr.args.length; i++) {
-            evaledArgs.push(evl(expr.args[i], env));
-        }
-        evaledArgs.push(env);
-        return func.apply(null, evaledArgs);
+        // for now only one arg ...
+        return thunk(evl, expr.args[0], env, function (v) {
+          var c = cont;
+          return thunk(funcs[expr.name], v, env, c);
+        });
   }
 };
 
+var thunk = function (func, ...args) {
+  return { tag: "thunk", func, args };
+};
+
 var funcs = {
-  move: function (amt, env) {
+  move: function (amt, env, cont) {
     var dir = degreesToRadians(env.direction);
     var newX = env.x + amt * Math.cos(dir);
     var newY = env.y + amt * Math.sin(dir);
@@ -42,10 +61,12 @@ var funcs = {
     });
     env.x = newX;
     env.y = newY;
+    return thunk(cont, env);
   },
 
-  rotate: function (pos, env) {
+  rotate: function (pos, env, cont) {
     env.direction = (pos + env.direction) % 360;
+    return thunk(cont, env);
   }
 };
 
