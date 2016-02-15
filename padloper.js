@@ -52,7 +52,7 @@
 	var CodeMirror = __webpack_require__(7);
 	var cm = CodeMirror(document.getElementsByClassName('editor')[0], {
 	  lineNumbers: true,
-	  value: 'move(20 * 2 - 5);'
+	  value: 'move(5 * 10);\nrotate(90);\nmove(50);\nrotate(90);\nmove(100 / 2);\nrotate(90);\nmove(50);'
 	});
 
 	var TurtleCanvas = __webpack_require__(8);
@@ -76,13 +76,24 @@
 
 	  try {
 	    var ast = parse(program);
-	    console.log(ast);
-	    for (var i = 0; i < ast.length; i++) {
-	      evl(ast[i], env);
-	    }
+	    var start = evl(ast, env, function (v) {
+	      return { tag: "value", value: v };
+	    });
+
+	    evalThunk(start);
 	    canvas.draw(env.paths);
 	  } catch (e) {
 	    console.log(e.message);
+	  }
+	};
+
+	var evalThunk = function evalThunk(thk) {
+	  while (true) {
+	    if (thk.tag === "value") {
+	      return thk.value;
+	    } else if (thk.tag === "thunk") {
+	      thk = thk.func.apply(null, thk.args);
+	    }
 	  }
 	};
 
@@ -9340,10 +9351,39 @@
 	      var s0, s1;
 
 	      s0 = [];
-	      s1 = peg$parseexpression();
+	      s1 = peg$parsestatement();
 	      while (s1 !== peg$FAILED) {
 	        s0.push(s1);
-	        s1 = peg$parseexpression();
+	        s1 = peg$parsestatement();
+	      }
+
+	      return s0;
+	    }
+
+	    function peg$parsestatement() {
+	      var s0, s1, s2, s3;
+
+	      s0 = peg$currPos;
+	      s1 = peg$parse_();
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parseexpression();
+	        if (s2 !== peg$FAILED) {
+	          s3 = peg$parse_();
+	          if (s3 !== peg$FAILED) {
+	            peg$savedPos = s0;
+	            s1 = peg$c0(s2);
+	            s0 = s1;
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$FAILED;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$FAILED;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$FAILED;
 	      }
 
 	      return s0;
@@ -10156,29 +10196,81 @@
 
 	'use strict';
 
-	module.exports = function evl(expr, env) {
+	module.exports = function evl(expr, env, cont) {
+	  if (typeof expr === 'number') return thunk(cont, expr);
+
+	  if (Array.isArray(expr)) {
+	    return function loop(env, i) {
+	      if (i < expr.length - 1) {
+	        return thunk(evl, expr[i], env, function () {
+	          return loop(env, i + 1);
+	        });
+	      } else {
+	        return thunk(evl, expr[i], env, cont);
+	      }
+	    }(env, 0);
+	  }
+
 	  switch (expr.tag) {
-	    case 'move':
-	      return move(expr.expr, env);
-	    case 'rotate':
-	      return rotate(expr.expr, env);
+	    case '+':
+	      return thunk(evl, expr.left, env, function (v) {
+	        return thunk(evl, expr.right, env, function (v2) {
+	          return thunk(cont, v + v2);
+	        });
+	      });
+	    case '-':
+	      return thunk(evl, expr.left, env, function (v) {
+	        return thunk(evl, expr.right, env, function (v2) {
+	          return thunk(cont, v - v2);
+	        });
+	      });
+	    case '*':
+	      return thunk(evl, expr.left, env, function (v) {
+	        return thunk(evl, expr.right, env, function (v2) {
+	          return thunk(cont, v * v2);
+	        });
+	      });
+	    case '/':
+	      return thunk(evl, expr.left, env, function (v) {
+	        return thunk(evl, expr.right, env, function (v2) {
+	          return thunk(cont, v / v2);
+	        });
+	      });
+	    case 'call':
+	      // for now only one arg ...
+	      return thunk(evl, expr.args[0], env, function (v) {
+	        var c = cont;
+	        return thunk(funcs[expr.name], v, env, c);
+	      });
 	  }
 	};
 
-	var move = function move(amt, env) {
-	  var dir = degreesToRadians(env.direction);
-	  var newX = env.x + amt * Math.cos(dir);
-	  var newY = env.y + amt * Math.sin(dir);
-	  env.paths.push({
-	    start: { x: env.x, y: env.y },
-	    end: { x: newX, y: newY }
-	  });
-	  env.x = newX;
-	  env.y = newY;
+	var thunk = function thunk(func) {
+	  for (var _len = arguments.length, args = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+	    args[_key - 1] = arguments[_key];
+	  }
+
+	  return { tag: "thunk", func: func, args: args };
 	};
 
-	var rotate = function rotate(pos, env) {
-	  env.direction = (pos + env.direction) % 360;
+	var funcs = {
+	  move: function move(amt, env, cont) {
+	    var dir = degreesToRadians(env.direction);
+	    var newX = env.x + amt * Math.cos(dir);
+	    var newY = env.y + amt * Math.sin(dir);
+	    env.paths.push({
+	      start: { x: env.x, y: env.y },
+	      end: { x: newX, y: newY }
+	    });
+	    env.x = newX;
+	    env.y = newY;
+	    return thunk(cont, env);
+	  },
+
+	  rotate: function rotate(pos, env, cont) {
+	    env.direction = (pos + env.direction) % 360;
+	    return thunk(cont, env);
+	  }
 	};
 
 	// helpers
