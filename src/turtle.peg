@@ -31,6 +31,8 @@ multiplicative
 
 primary
     = number
+    / "repeat" "(" _ expr:expression _ ")" _ "{" body:statements "}"
+        { return {tag:"repeat", count: expr, body: body }; }
     / v:identifier "(" _ ")" _ ";"
         { return {tag:"call", name:v, args:[]}; }
     / v:identifier "(" _ args:arglist _ ")" _ ";"

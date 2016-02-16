@@ -5,13 +5,10 @@ require('./style.css');
 var CodeMirror = require('codemirror');
 var cm = CodeMirror(document.getElementsByClassName('editor')[0], {
   lineNumbers: true,
-  value: `move(50);
-rotate(90);
-move(50);
-rotate(90);
-move(50);
-rotate(90);
-move(50);`
+  value: `repeat(4) {
+  move(50);
+  rotate(90);
+}`
 });
 
 
@@ -82,6 +79,7 @@ var run = function (canvas, program) {
 
   try {
     var ast = parse(program);
+    console.log(ast);
     var start = evl(ast, env, v => { return { tag: "value", value: v }});
     evalThunk(start);
     canvas.draw(env.paths);

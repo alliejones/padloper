@@ -5,9 +5,9 @@ module.exports = function evl (expr, env, cont) {
     return thunk(cont, expr);
 
   if (Array.isArray(expr)) {
-    return (function loop (env, i) {
+    return (function evalList (env, i) {
       if (i < expr.length - 1) {
-        return thunk(evl, expr[i], env, function () { return loop(env, i + 1); });
+        return thunk(evl, expr[i], env, function () { return evalList(env, i + 1); });
       } else {
         return thunk(evl, expr[i], env, cont);
       }
@@ -15,36 +15,43 @@ module.exports = function evl (expr, env, cont) {
   }
 
   switch (expr.tag) {
-      case '+':
-        return thunk(evl, expr.left, env, function (v) {
-          return thunk(evl, expr.right, env, function (v2) {
-            return thunk(cont, v + v2);
-          });
-        });
-      case '-':
-        return thunk(evl, expr.left, env, function (v) {
-          return thunk(evl, expr.right, env, function (v2) {
-            return thunk(cont, v - v2);
-          });
-        });
-      case '*':
-        return thunk(evl, expr.left, env, function (v) {
-          return thunk(evl, expr.right, env, function (v2) {
-            return thunk(cont, v * v2);
-          });
-        });
-      case '/':
-        return thunk(evl, expr.left, env, function (v) {
-          return thunk(evl, expr.right, env, function (v2) {
-            return thunk(cont, v / v2);
-          });
-        });
-      case 'call':
-        // for now only one arg ...
-        return thunk(evl, expr.args[0], env, function (v) {
-          var c = cont;
-          return thunk(funcs[expr.name], v, env, c);
-        });
+  case '+':
+    return thunk(evl, expr.left, env, function (v) {
+      return thunk(evl, expr.right, env, function (v2) {
+        return thunk(cont, v + v2);
+      });
+    });
+  case '-':
+    return thunk(evl, expr.left, env, function (v) {
+      return thunk(evl, expr.right, env, function (v2) {
+        return thunk(cont, v - v2);
+      });
+    });
+  case '*':
+    return thunk(evl, expr.left, env, function (v) {
+      return thunk(evl, expr.right, env, function (v2) {
+        return thunk(cont, v * v2);
+      });
+    });
+  case '/':
+    return thunk(evl, expr.left, env, function (v) {
+      return thunk(evl, expr.right, env, function (v2) {
+        return thunk(cont, v / v2);
+      });
+    });
+  case 'call':
+    // for now only one arg ...
+    return thunk(evl, expr.args[0], env, function (v) {
+      return thunk(funcs[expr.name], v, env, cont);
+    });
+  case 'repeat':
+    return (function repeat (env, i) {
+      if (i < expr.count) {
+        return thunk(evl, expr.body, env, function () { return repeat(env, i + 1); });
+      } else {
+        return thunk(cont, 0, env, cont);
+      }
+    })(env, 0);
   }
 };
 
