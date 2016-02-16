@@ -47,7 +47,11 @@ module.exports = function evl (expr, env, cont) {
 };
 
 var thunk = function (func, ...args) {
-  return { tag: "thunk", func, args };
+  return { tag: "thunk", func, args, type: "normal" };
+};
+
+var drawThunk = function (func, ...args) {
+  return { tag: "thunk", func, args, type: "draw" };
 };
 
 var funcs = {
@@ -61,12 +65,12 @@ var funcs = {
     });
     env.x = newX;
     env.y = newY;
-    return thunk(cont, env);
+    return drawThunk(cont, env);
   },
 
   rotate: function (pos, env, cont) {
     env.direction = (pos + env.direction) % 360;
-    return thunk(cont, env);
+    return drawThunk(cont, env);
   }
 };
 

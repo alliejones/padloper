@@ -5,11 +5,11 @@ require('./style.css');
 var CodeMirror = require('codemirror');
 var cm = CodeMirror(document.getElementsByClassName('editor')[0], {
   lineNumbers: true,
-  value: `move(5 * 10);
+  value: `move(50);
 rotate(90);
 move(50);
 rotate(90);
-move(100 / 2);
+move(50);
 rotate(90);
 move(50);`
 });
@@ -23,8 +23,54 @@ document.getElementsByClassName('run-button')[0].addEventListener('click', funct
   run(canvas, cm.getValue());
 });
 
+var state = null, env = {};
+document.getElementsByClassName('step-button')[0].addEventListener('click', function () {
+  if (!state) state = firstStep(canvas, cm.getValue());
+  step(state);
+  canvas.draw(env.paths);
+});
+
 var parse = require('./parser').parse;
 var evl = require('./eval');
+
+var firstStep = function (canvas, program) {
+  var ast = parse(program);
+  env = {
+    x: 100,
+    y: 100,
+    direction: 0,
+    paths: []
+  };
+
+  return {
+    canvas: canvas,
+    data: evl(ast, env, v => { return { tag: "value", value: v }}),
+    done: false
+  };
+};
+
+var step = function (state) {
+  if (state.done) return;
+
+  while ((state.data.tag !== "thunk") ||
+         (state.data.tag === "thunk" && state.data.type !== "draw")) {
+
+    if (state.data.tag === "value") {
+      state.data = state.data.val;
+      state.done = true;
+    } else if (state.data.tag === "thunk") {
+      state.data = state.data.func.apply(null, state.data.args);
+    } else {
+      throw new Error("Bad thunk");
+    }
+
+    if (state.done) return;
+  }
+
+  if (state.data.tag === "thunk" && state.data.type === "draw") {
+    state.data = state.data.func.apply(null, state.data.args);
+  }
+};
 
 var run = function (canvas, program) {
   var env = {
@@ -37,7 +83,6 @@ var run = function (canvas, program) {
   try {
     var ast = parse(program);
     var start = evl(ast, env, v => { return { tag: "value", value: v }});
-
     evalThunk(start);
     canvas.draw(env.paths);
   } catch(e) {
@@ -54,5 +99,3 @@ var evalThunk = function (thk) {
     }
   }
 };
-
-run(canvas, cm.getValue());
