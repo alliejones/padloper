@@ -27,7 +27,7 @@ var state = null, env = {};
 document.getElementsByClassName('step-button')[0].addEventListener('click', function () {
   if (!state) state = firstStep(canvas, cm.getValue());
   step(state);
-  canvas.draw(env.paths);
+  canvas.draw({ x: env.x, y: env.y, direction: env.direction }, env.paths);
 });
 
 var parse = require('./parser').parse;

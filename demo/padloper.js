@@ -52,7 +52,7 @@
 	var CodeMirror = __webpack_require__(7);
 	var cm = CodeMirror(document.getElementsByClassName('editor')[0], {
 	  lineNumbers: true,
-	  value: 'move(5 * 10);\nrotate(90);\nmove(50);\nrotate(90);\nmove(100 / 2);\nrotate(90);\nmove(50);'
+	  value: 'move(50);\nrotate(90);\nmove(50);\nrotate(90);\nmove(50);\nrotate(90);\nmove(50);'
 	});
 
 	var TurtleCanvas = __webpack_require__(8);
@@ -63,8 +63,56 @@
 	  run(canvas, cm.getValue());
 	});
 
-	var parse = __webpack_require__(9).parse;
-	var evl = __webpack_require__(10);
+	var state = null,
+	    env = {};
+	document.getElementsByClassName('step-button')[0].addEventListener('click', function () {
+	  if (!state) state = firstStep(canvas, cm.getValue());
+	  step(state);
+	  canvas.draw({ x: env.x, y: env.y, direction: env.direction }, env.paths);
+	});
+
+	var parse = __webpack_require__(10).parse;
+	var evl = __webpack_require__(11);
+
+	var firstStep = function firstStep(canvas, program) {
+	  var ast = parse(program);
+	  env = {
+	    x: 100,
+	    y: 100,
+	    direction: 0,
+	    paths: []
+	  };
+
+	  return {
+	    canvas: canvas,
+	    data: evl(ast, env, function (v) {
+	      return { tag: "value", value: v };
+	    }),
+	    done: false
+	  };
+	};
+
+	var step = function step(state) {
+	  if (state.done) return;
+
+	  while (state.data.tag !== "thunk" || state.data.tag === "thunk" && state.data.type !== "draw") {
+
+	    if (state.data.tag === "value") {
+	      state.data = state.data.val;
+	      state.done = true;
+	    } else if (state.data.tag === "thunk") {
+	      state.data = state.data.func.apply(null, state.data.args);
+	    } else {
+	      throw new Error("Bad thunk");
+	    }
+
+	    if (state.done) return;
+	  }
+
+	  if (state.data.tag === "thunk" && state.data.type === "draw") {
+	    state.data = state.data.func.apply(null, state.data.args);
+	  }
+	};
 
 	var run = function run(canvas, program) {
 	  var env = {
@@ -79,7 +127,6 @@
 	    var start = evl(ast, env, function (v) {
 	      return { tag: "value", value: v };
 	    });
-
 	    evalThunk(start);
 	    canvas.draw(env.paths);
 	  } catch (e) {
@@ -96,8 +143,6 @@
 	    }
 	  }
 	};
-
-	run(canvas, cm.getValue());
 
 /***/ },
 /* 1 */
@@ -9013,13 +9058,17 @@
 
 /***/ },
 /* 8 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	var _require = __webpack_require__(9);
+
+	var degreesToRadians = _require.degreesToRadians;
 
 	var TurtleCanvas = function () {
 	  function TurtleCanvas(canvasEl, canvasContainerEl) {
@@ -9030,13 +9079,14 @@
 
 	  _createClass(TurtleCanvas, [{
 	    key: 'draw',
-	    value: function draw(paths) {
+	    value: function draw(turtle, paths) {
 	      var _this = this;
 
 	      this.clear();
 	      paths.forEach(function (p) {
 	        return _this.drawPath(p);
 	      });
+	      this.drawTurtle(turtle);
 	    }
 	  }, {
 	    key: 'clear',
@@ -9054,6 +9104,19 @@
 	      this.ctx.stroke();
 	    }
 	  }, {
+	    key: 'drawTurtle',
+	    value: function drawTurtle(turtle) {
+	      this.ctx.save();
+	      this.ctx.translate(turtle.x, turtle.y);
+	      this.ctx.rotate(degreesToRadians(turtle.direction));
+	      this.ctx.beginPath();
+	      this.ctx.moveTo(0, 0);
+	      this.ctx.lineTo(-10, -5);
+	      this.ctx.lineTo(-10, 5);
+	      this.ctx.fill();
+	      this.ctx.restore();
+	    }
+	  }, {
 	    key: 'fitToContainer',
 	    value: function fitToContainer(containerEl) {
 	      var size = containerEl.getBoundingClientRect();
@@ -9069,6 +9132,16 @@
 
 /***/ },
 /* 9 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	module.exports.degreesToRadians = function (deg) {
+	  return deg * Math.PI / 180;
+	};
+
+/***/ },
+/* 10 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -10191,10 +10264,15 @@
 	}();
 
 /***/ },
-/* 10 */
-/***/ function(module, exports) {
+/* 11 */
+/***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
+
+	var _require = __webpack_require__(9);
+
+	var degreesToRadians = _require.degreesToRadians;
+
 
 	module.exports = function evl(expr, env, cont) {
 	  if (typeof expr === 'number') return thunk(cont, expr);
@@ -10250,7 +10328,15 @@
 	    args[_key - 1] = arguments[_key];
 	  }
 
-	  return { tag: "thunk", func: func, args: args };
+	  return { tag: "thunk", func: func, args: args, type: "normal" };
+	};
+
+	var drawThunk = function drawThunk(func) {
+	  for (var _len2 = arguments.length, args = Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
+	    args[_key2 - 1] = arguments[_key2];
+	  }
+
+	  return { tag: "thunk", func: func, args: args, type: "draw" };
 	};
 
 	var funcs = {
@@ -10264,19 +10350,13 @@
 	    });
 	    env.x = newX;
 	    env.y = newY;
-	    return thunk(cont, env);
+	    return drawThunk(cont, env);
 	  },
 
 	  rotate: function rotate(pos, env, cont) {
 	    env.direction = (pos + env.direction) % 360;
-	    return thunk(cont, env);
+	    return drawThunk(cont, env);
 	  }
-	};
-
-	// helpers
-
-	var degreesToRadians = function degreesToRadians(deg) {
-	  return deg * Math.PI / 180;
 	};
 
 /***/ }

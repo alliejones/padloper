@@ -1,3 +1,5 @@
+var { degreesToRadians } = require('./util');
+
 module.exports = function evl (expr, env, cont) {
   if (typeof expr === 'number')
     return thunk(cont, expr);
@@ -74,9 +76,3 @@ var funcs = {
   }
 };
 
-
-// helpers
-
-var degreesToRadians = function (deg) {
-  return deg * Math.PI/180;
-};
